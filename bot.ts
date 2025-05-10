@@ -15,7 +15,7 @@ interface Config {
 
 const config: Config = {
   geminiApiKey:
-    process.env.GEMINI_API_KEY || "AIzaSyDorj73PaqatXk9ShGdjeGi6Pge8-P8gv4",
+    process.env.GEMINI_API_KEY || "",
   wsPort: parseInt(process.env.WS_PORT || "8080"),
 };
 
