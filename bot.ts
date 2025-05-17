@@ -7,7 +7,28 @@ import OpenAI from "openai";
 
 dotenv.config();
 
+<<<<<<< HEAD
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+=======
+interface Config {
+  geminiApiKey: string;
+  wsPort: number;
+}
+
+const config: Config = {
+  geminiApiKey:
+    process.env.GEMINI_API_KEY || "",
+  wsPort: parseInt(process.env.WS_PORT || "8080"),
+};
+
+if (!config.geminiApiKey) {
+  throw new Error("GEMINI_API_KEY environment variable is required");
+}
+
+// Initialize Gemini
+const ai = new GoogleGenerativeAI(config.geminiApiKey);
+const model = ai.getGenerativeModel({ model: "gemini-1.5-flash-001" });
+>>>>>>> 74042124f5f8a51ee7fa48772123f4763c8ef76d
 
 // WhatsApp Client
 const whatsappClient = new Client({
