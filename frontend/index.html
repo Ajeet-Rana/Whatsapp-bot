@@ -31,6 +31,7 @@
       }
       .custom-scrollbar::-webkit-scrollbar-track {
         background: #f1f1f1;
+        border-radius: 3px;
       }
       .custom-scrollbar::-webkit-scrollbar-thumb {
         background: #c1c1c1;
@@ -49,12 +50,17 @@
               <h1 class="text-2xl md:text-3xl font-bold">
                 WhatsApp Bot Interface
               </h1>
-              <p class="text-white/80">Manage your WhatsApp bot interactions</p>
+              <p class="text-white/80">Real-time bot management dashboard</p>
             </div>
           </div>
-          <div
-            class="status-indicator bg-green-400 rounded-full w-3 h-3 animate-pulse"
-          ></div>
+          <div id="connection-indicator" class="flex items-center space-x-2">
+            <span id="connection-status-text" class="text-sm"
+              >Connecting...</span
+            >
+            <div
+              class="status-indicator bg-yellow-400 rounded-full w-3 h-3"
+            ></div>
+          </div>
         </div>
       </header>
 
@@ -65,29 +71,60 @@
         >
           <div class="flex items-center mb-4">
             <i class="fas fa-qrcode text-2xl text-green-500 mr-3"></i>
-            <h2 class="text-xl font-semibold text-gray-800">Scan QR Code</h2>
+            <h2 class="text-xl font-semibold text-gray-800">
+              QR Authentication
+            </h2>
           </div>
           <div
             id="qr-code"
-            class="flex-1 flex justify-center items-center bg-gray-50 rounded-lg p-4"
+            class="flex-1 flex flex-col justify-center items-center bg-gray-50 rounded-lg p-4"
           >
-            <p class="text-gray-500 text-center">Waiting for QR code...</p>
+            <div class="w-64 h-64 flex items-center justify-center">
+              <p id="qr-placeholder" class="text-gray-500 text-center">
+                Waiting for QR code generation...
+              </p>
+              <img
+                id="qr-image"
+                src=""
+                alt="QR Code"
+                class="hidden w-full h-auto"
+              />
+            </div>
+            <div id="qr-instructions" class="mt-4 text-center hidden">
+              <p class="text-sm text-gray-600 font-medium">
+                <i class="fas fa-info-circle mr-1 text-blue-500"></i>
+                Scan this QR code with WhatsApp on your phone
+              </p>
+              <p class="text-xs text-gray-500 mt-1">Expires in 30 seconds</p>
+            </div>
           </div>
-          <div class="mt-4 text-sm text-gray-600">
-            <p>
-              <i class="fas fa-info-circle mr-2 text-blue-500"></i>Scan this QR
-              code with WhatsApp on your phone
-            </p>
+          <div class="mt-4">
+            <button
+              id="refresh-qr"
+              class="w-full py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition"
+            >
+              <i class="fas fa-sync-alt mr-2"></i> Generate New QR Code
+            </button>
           </div>
         </section>
 
-        <!-- Messages Section - Fixed height with scroll -->
+        <!-- Messages Section -->
         <section
           class="bg-white rounded-xl p-6 shadow-md h-[500px] flex flex-col"
         >
-          <div class="flex items-center mb-4">
-            <i class="fas fa-comments text-2xl text-green-500 mr-3"></i>
-            <h2 class="text-xl font-semibold text-gray-800">Message Log</h2>
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+              <i class="fas fa-comments text-2xl text-green-500 mr-3"></i>
+              <h2 class="text-xl font-semibold text-gray-800">Activity Log</h2>
+            </div>
+            <div class="flex space-x-2">
+              <button
+                id="clear-messages"
+                class="text-xs text-gray-500 hover:text-gray-700"
+              >
+                <i class="fas fa-trash-alt mr-1"></i> Clear
+              </button>
+            </div>
           </div>
           <div
             class="bg-gray-50 rounded-lg p-4 flex-1 overflow-y-auto custom-scrollbar"
@@ -96,127 +133,223 @@
               <li
                 class="bg-blue-50 text-blue-800 p-3 rounded-lg message-animation"
               >
-                <div class="font-medium">System</div>
-                <div class="break-words">Connecting to WhatsApp server...</div>
-                <div class="text-xs text-gray-500 mt-1">Just now</div>
+                <div class="flex justify-between items-start">
+                  <div class="font-medium">System</div>
+                  <div class="text-xs text-gray-500">Just now</div>
+                </div>
+                <div class="break-words mt-1">
+                  Initializing connection to WhatsApp server...
+                </div>
               </li>
             </ul>
           </div>
-          <div class="mt-4 flex space-x-2">
-            <span
-              class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full"
-              >Status</span
-            >
-            <span
-              class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-              >Messages</span
-            >
-            <span class="px-3 py-1 bg-red-100 text-red-800 text-xs rounded-full"
-              >Errors</span
-            >
+          <div class="mt-4 flex justify-between items-center">
+            <div class="text-xs text-gray-500">
+              <span id="message-count">1</span> message(s)
+            </div>
+            <div class="flex space-x-2">
+              <span
+                id="connection-badge"
+                class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full"
+                >Connecting</span
+              >
+            </div>
           </div>
         </section>
       </div>
 
-      <!-- Connection Status -->
+      <!-- Connection Info -->
       <div class="mt-6 bg-white rounded-xl p-4 shadow-md">
-        <div class="flex items-center">
-          <div class="flex-1">
-            <h3 class="font-medium text-gray-800">Connection Status</h3>
-            <p class="text-sm text-gray-600" id="connection-status">
-              Connecting to WebSocket server...
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-medium text-gray-800">Connection Information</h3>
+            <p class="text-sm text-gray-600">
+              WebSocket:
+              <span id="ws-status" class="font-mono">ws://localhost:8080</span>
             </p>
           </div>
-          <div
-            class="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center"
-          >
-            <i class="fas fa-sync-alt text-white animate-spin"></i>
+          <div>
+            <button
+              id="reconnect-btn"
+              class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-full"
+            >
+              <i class="fas fa-plug mr-1"></i> Reconnect
+            </button>
           </div>
         </div>
       </div>
     </div>
 
     <script>
-      const ws = new WebSocket("ws://localhost:8080");
+      // DOM Elements
       const messagesEl = document.getElementById("messages");
-      const qrCodeEl = document.getElementById("qr-code");
-      const connectionStatusEl = document.getElementById("connection-status");
+      const qrImage = document.getElementById("qr-image");
+      const qrPlaceholder = document.getElementById("qr-placeholder");
+      const qrInstructions = document.getElementById("qr-instructions");
+      const refreshQrBtn = document.getElementById("refresh-qr");
+      const clearMessagesBtn = document.getElementById("clear-messages");
+      const messageCountEl = document.getElementById("message-count");
+      const connectionStatusText = document.getElementById(
+        "connection-status-text"
+      );
+      const statusIndicator = document.querySelector(".status-indicator");
+      const connectionBadge = document.getElementById("connection-badge");
+      const reconnectBtn = document.getElementById("reconnect-btn");
+      const wsStatusEl = document.getElementById("ws-status");
 
-      // Connection status handling
-      ws.onopen = () => {
-        connectionStatusEl.textContent = "Connected to WebSocket server";
-        connectionStatusEl.classList.add("text-green-600");
-        connectionStatusEl.classList.remove("text-gray-600");
+      // WebSocket Configuration
+      const wsUrl = "ws://localhost:8080";
+      wsStatusEl.textContent = wsUrl;
+      let ws;
+      let messageCount = 1;
 
-        // Update the initial system message
-        const systemMsg = messagesEl.firstElementChild;
-        systemMsg.querySelector("div:last-child").textContent =
-          "Connected to WebSocket server";
-        systemMsg.classList.replace("bg-blue-50", "bg-green-50");
-        systemMsg.classList.replace("text-blue-800", "text-green-800");
-      };
+      function initWebSocket() {
+        ws = new WebSocket(wsUrl);
 
-      ws.onerror = () => {
-        connectionStatusEl.textContent = "Connection error";
-        connectionStatusEl.classList.add("text-red-600");
-      };
+        ws.onopen = () => {
+          statusIndicator.classList.remove("bg-yellow-400", "bg-red-400");
+          statusIndicator.classList.add("bg-green-400");
+          connectionStatusText.textContent = "Connected";
+          connectionBadge.textContent = "Connected";
+          connectionBadge.className =
+            "px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full";
+          addMessage("System", "WebSocket connection established", "success");
+        };
 
-      ws.onclose = () => {
-        connectionStatusEl.textContent = "Disconnected";
-        connectionStatusEl.classList.add("text-red-600");
-      };
+        ws.onerror = (error) => {
+          statusIndicator.classList.remove("bg-green-400", "bg-yellow-400");
+          statusIndicator.classList.add("bg-red-400");
+          connectionStatusText.textContent = "Connection error";
+          connectionBadge.textContent = "Error";
+          connectionBadge.className =
+            "px-3 py-1 bg-red-100 text-red-800 text-xs rounded-full";
+          addMessage("System", "WebSocket connection error", "error");
+        };
 
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
+        ws.onclose = () => {
+          statusIndicator.classList.remove("bg-green-400");
+          statusIndicator.classList.add("bg-yellow-400");
+          connectionStatusText.textContent = "Disconnected";
+          connectionBadge.textContent = "Disconnected";
+          connectionBadge.className =
+            "px-3 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full";
+          addMessage("System", "WebSocket connection closed", "warning");
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+
+            if (data.type === "qr" && data.qr) {
+              qrImage.src = data.qr;
+              qrImage.classList.remove("hidden");
+              qrPlaceholder.classList.add("hidden");
+              qrInstructions.classList.remove("hidden");
+              addMessage("System", "New QR code generated", "success");
+            } else if (data.type === "status") {
+              addMessage("Status", data.text, "info");
+            } else if (data.type === "message") {
+              addMessage("Received", data.text, "message");
+            } else if (data.type === "reply") {
+              addMessage("Sent", data.text, "success");
+            } else if (data.type === "error") {
+              addMessage("Error", data.text, "error");
+            }
+          } catch (error) {
+            addMessage("System", `Error processing message: ${error}`, "error");
+          }
+        };
+      }
+
+      function addMessage(sender, text, type = "info") {
         const now = new Date();
         const timestamp = now.toLocaleTimeString();
 
-        if (data.type === "qr" && data.qr) {
-          qrCodeEl.innerHTML = `<img src="${data.qr}" alt="QR Code" class="w-full h-auto max-w-xs mx-auto" />`;
-          addMessage(
-            "System",
-            "QR code generated. Please scan to authenticate.",
-            "bg-blue-50 text-blue-800",
-            timestamp
-          );
-        } else if (data.type === "message") {
-          addMessage(
-            "Received",
-            data.text,
-            "bg-purple-50 text-purple-800",
-            timestamp
-          );
-        } else if (data.type === "reply") {
-          addMessage(
-            "Sent",
-            data.text,
-            "bg-green-50 text-green-800",
-            timestamp
-          );
-        } else if (data.type === "status") {
-          addMessage(
-            "Status",
-            data.text,
-            "bg-yellow-50 text-yellow-800",
-            timestamp
-          );
-        } else if (data.type === "error") {
-          addMessage("Error", data.text, "bg-red-50 text-red-800", timestamp);
+        let bgColor, textColor, icon;
+        switch (type) {
+          case "error":
+            bgColor = "bg-red-50";
+            textColor = "text-red-800";
+            icon = "exclamation-circle";
+            break;
+          case "success":
+            bgColor = "bg-green-50";
+            textColor = "text-green-800";
+            icon = "check-circle";
+            break;
+          case "warning":
+            bgColor = "bg-yellow-50";
+            textColor = "text-yellow-800";
+            icon = "exclamation-triangle";
+            break;
+          case "message":
+            bgColor = "bg-purple-50";
+            textColor = "text-purple-800";
+            icon = "comment-alt";
+            break;
+          default:
+            bgColor = "bg-blue-50";
+            textColor = "text-blue-800";
+            icon = "info-circle";
         }
-      };
 
-      function addMessage(sender, text, bgColor, timestamp) {
         const li = document.createElement("li");
-        li.className = `${bgColor} p-3 rounded-lg message-animation`;
+        li.className = `${bgColor} ${textColor} p-3 rounded-lg message-animation`;
         li.innerHTML = `
-          <div class="font-medium">${sender}</div>
-          <div class="break-words">${text}</div>
-          <div class="text-xs text-gray-500 mt-1">${timestamp}</div>
-        `;
+        <div class="flex justify-between items-start">
+          <div class="font-medium flex items-center">
+            <i class="fas fa-${icon} mr-2"></i>${sender}
+          </div>
+          <div class="text-xs text-gray-500">${timestamp}</div>
+        </div>
+        <div class="break-words mt-1">${text}</div>
+      `;
+
         messagesEl.appendChild(li);
         messagesEl.parentElement.scrollTop =
           messagesEl.parentElement.scrollHeight;
+        messageCount++;
+        messageCountEl.textContent = messageCount;
       }
+
+      clearMessagesBtn.addEventListener("click", () => {
+        messagesEl.innerHTML = `
+        <li class="bg-blue-50 text-blue-800 p-3 rounded-lg message-animation">
+          <div class="flex justify-between items-start">
+            <div class="font-medium flex items-center">
+              <i class="fas fa-info-circle mr-2"></i>System
+            </div>
+            <div class="text-xs text-gray-500">${new Date().toLocaleTimeString()}</div>
+          </div>
+          <div class="break-words mt-1">Message log cleared</div>
+        </li>
+      `;
+        messageCount = 1;
+        messageCountEl.textContent = messageCount;
+      });
+
+      refreshQrBtn.addEventListener("click", () => {
+        if (ws.readyState === WebSocket.OPEN) {
+          addMessage("System", "Requesting new QR code...", "info");
+          ws.send(JSON.stringify({ type: "refresh_qr" }));
+        } else {
+          addMessage(
+            "System",
+            "Cannot refresh QR - connection offline",
+            "error"
+          );
+        }
+      });
+
+      reconnectBtn.addEventListener("click", () => {
+        if (ws && ws.readyState !== WebSocket.CONNECTING) {
+          addMessage("System", "Attempting to reconnect...", "info");
+          initWebSocket();
+        }
+      });
+
+      // Initialize
+      initWebSocket();
     </script>
   </body>
 </html>
