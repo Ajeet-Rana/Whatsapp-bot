@@ -8,8 +8,6 @@ import OpenAI from "openai";
 dotenv.config();
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-// WhatsApp Client
 const whatsappClient = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
@@ -21,7 +19,6 @@ const whatsappClient = new Client({
 // WebSocket Server
 const wss = new WebSocketServer({ port: 8080 });
 
-// Broadcast helper
 const broadcast = (data: any) => {
   const payload = JSON.stringify(data);
   wss.clients.forEach((client) => {
@@ -61,6 +58,34 @@ const functions = [
   },
 ];
 
+// Function : summarize text
+const summarizeText = async (text: string) => {
+  const result = await openai.chat.completions.create({
+    model: "gpt-3.5-turbo",
+    messages: [
+      {
+        role: "user",
+        content: `Summarize this text in 2-3 lines:\n\n${text}`,
+      },
+    ],
+  });
+  return `Summary:\n${result.choices[0].message.content}`;
+};
+
+// Function : translate text
+const translateText = async (text: string, targetLanguage: string) => {
+  const result = await openai.chat.completions.create({
+    model: "gpt-3.5-turbo",
+    messages: [
+      {
+        role: "user",
+        content: `Translate this to ${targetLanguage}:\n\n${text}`,
+      },
+    ],
+  });
+  return `Translation:\n${result.choices[0].message.content}`;
+};
+
 whatsappClient.on("qr", async (qr) => {
   qrcodeTerminal.generate(qr, { small: true });
   const base64 = await qrcode.toDataURL(qr);
@@ -94,30 +119,17 @@ whatsappClient.on("message", async (msg: Message) => {
       const parsedArgs = JSON.parse(args || "{}");
       let finalText = "";
 
-      if (name === "summarizeText") {
-        const result = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          messages: [
-            {
-              role: "user",
-              content: `Summarize this text in 2-3 lines:\n\n${parsedArgs.text}`,
-            },
-          ],
-        });
-        finalText = `Summary:\n${result.choices[0].message.content}`;
-      }
-
-      if (name === "translateText") {
-        const result = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          messages: [
-            {
-              role: "user",
-              content: `Translate this to ${parsedArgs.targetLanguage}:\n\n${parsedArgs.text}`,
-            },
-          ],
-        });
-        finalText = `Translation:\n${result.choices[0].message.content}`;
+      // Call the appropriate function based on the function name
+      switch (name) {
+        case "summarizeText":
+          finalText = await summarizeText(parsedArgs.text);
+          break;
+        case "translateText":
+          finalText = await translateText(
+            parsedArgs.text,
+            parsedArgs.targetLanguage
+          );
+          break;
       }
 
       await msg.reply(finalText);
